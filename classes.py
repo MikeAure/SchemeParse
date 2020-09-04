@@ -1,15 +1,17 @@
 from bs4 import BeautifulSoup
 import requests
+from parse import initInfo
 import lxml
 import json
-
+import re
 class Class:
-    def __init__(self):
-        self.className=str()
-        self.location=str()
-        self.teacherName=str()
-        self.goal=float()
-        self.totalNum=int()
+    def __init__(self,**kwargs):
+        self.className=kwargs['name']
+        self.location=kwargs['loc']
+        self.teacherName=kwargs['teacherName']
+        self.goal=kwargs['goal']
+        self.totalNum=kwargs['totalNum']
+
 allClasses={}
 # totalWeeks=input("Please input your total week number:")
 # num=int()
@@ -36,8 +38,17 @@ rs=soup.find_all("tr")
 for i in range(4):
     del rs[0]
 
+def login(Cookie:str,termid:str,stuID:str):
+    url="http://202.115.133.173:805/Classroom/ProductionSchedule/StuProductionSchedule.aspx"
+    header={'Cookie': Cookie}
+    info={'termid':termid,'stuID':stuID}
+    htmli=requests.get(url=url,params=info,headers=header)
+    rs=htmli.text
+    with open("result.html","w",encoding="utf-8") as f:
+        f.write(rs)
+    return f
 
-def judge(weekdayCal,oneday,weekdayTemp,classContent,weekday):
+def judge(weekdayCal,oneday,weekdayTemp,classContent,weekday,currentWeek):
     if weekdayCal == 2:
         oneday.update({"1-2": classContent})
     elif weekdayCal == 4:
@@ -59,43 +70,69 @@ def judge(weekdayCal,oneday,weekdayTemp,classContent,weekday):
 
 
 # print(rs[0].contents)
-wholeClasses={}
-print(type(rs[0].contents))
-for tr in rs:
-    lr=tr.find_all('td')#tr块中所有td标签
-    oneday={}
-    currentWeek=[]
-    weekday=1
-    weekdayCal=0
-    for tdItem in lr:
-        if tdItem["class"]==['td1']:
-            weekNum=int(next(tdItem.stripped_strings)[0:-1])
-            wholeClasses.update({weekNum:[]})
-            continue
-
-        if tdItem["class"] == ["fontcss"]:
-            if tdItem.has_attr("colspan") and tdItem["colspan"]=='12':
-                weekday+=1
+def parseScheme(rs):
+    wholeClasses={}
+    print(type(rs[0].contents))
+    for tr in rs:
+        lr=tr.find_all('td')#tr块中所有td标签
+        oneday={}
+        currentWeek=[]
+        weekday=1
+        weekdayCal=0
+        for tdItem in lr:
+            if tdItem["class"]==['td1']:
+                weekNum=int(next(tdItem.stripped_strings)[0:-1])
+                wholeClasses.update({weekNum:[]})
                 continue
-            else:
-                if tdItem.has_attr("colspan"):
-                    weekdayTemp=int(tdItem["colspan"])
+
+            if tdItem["class"] == ["fontcss"]:
+                if tdItem.has_attr("colspan") and tdItem["colspan"]=='12':
+                    weekday+=1
+                    continue
                 else:
-                    weekdayTemp=1
-                classContent=str()
-                for content in tdItem.stripped_strings:
-                    classContent=classContent+content+' '
-                weekdayCal+=weekdayTemp
-                (weekdayCal,weekday)=judge(weekdayCal,oneday,weekdayTemp,classContent,weekday)
+                    if tdItem.has_attr("colspan"):
+                        weekdayTemp=int(tdItem["colspan"])
+                    else:
+                        weekdayTemp=1
+                    classContent=str()
+                    for content in tdItem.stripped_strings:
+                        classContent=classContent+content+' '
+                    weekdayCal+=weekdayTemp
+                    (weekdayCal,weekday)=judge(weekdayCal,oneday,weekdayTemp,classContent,weekday,currentWeek)
 
-    wholeClasses[weekNum]=currentWeek
+        wholeClasses[weekNum]=currentWeek
+    toJson = json.dumps(wholeClasses, ensure_ascii=False)
+    with open("jsonrs.json", "w", encoding="utf-8")as f:
+        f.write(toJson)
 
-toJson=json.dumps(wholeClasses,ensure_ascii=False)
-with open("jsonrs.json","w",encoding="utf-8")as f:
-    f.write(toJson)
-# while '\n' in lr:
-#     lr.remove('\n')
-# print(lr)
+    return wholeClasses
+
+
+def classInfoGet(rs:BeautifulSoup):
+    rs.find_all(class_="tab2")
+    pass
+def produce(classDic:dict):
+    pass
+
+# wC= parseScheme(rs)
+# toJson=json.dumps(wC,ensure_ascii=False)
+# with open("jsonrs.json","w",encoding="utf-8")as f:
+#     f.write(toJson)
+
+r=soup.find_all(class_='detail')
+information=[]
+for i in r:
+    string=str()
+    for x in i.stripped_strings:
+        string+=x
+    information.append(string)
+
+print(information)
+parseScheme(rs)
+for i in information:
+    if i!='':
+        sourcels=i.split(' ')
+        print(initInfo(sourcels))
 
 
 
