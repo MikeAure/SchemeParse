@@ -1,5 +1,6 @@
 # SchemeParse
-A interpreter for CDUT class scheme
+A parser for CDUT classes scheme
 ## Goal
-I want to interprete school class scheme so that I can build an ics file to import my classes to calender.
-I will set this repo status to public until I finish all my work and every student in cdut can use this tool to create your own ics file.
+This is an parser for CDUT classes scheme HTML.
+I haven't used this parser to parse other colleges' classes scheme, so there must be a lot of bugs in my code.
+I would appreciate if you can use your classes scheme to test my simple parser and pull requests to me.
