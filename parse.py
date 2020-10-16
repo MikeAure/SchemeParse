@@ -49,6 +49,7 @@ def login(Cookie: str, termid: str, stuID: str):
 
 
 def judge(weekday_cal, oneday, weekday_temp, class_content, weekday, current_week):
+    flag = False
     if weekday_cal == 2:
         oneday.update({"1-2": class_content})
     elif weekday_cal == 4:
@@ -60,13 +61,16 @@ def judge(weekday_cal, oneday, weekday_temp, class_content, weekday, current_wee
     elif (weekday_cal == 11 and class_content != '') or weekday_cal == 12:
         oneday.update({"9-11": class_content})
         current_week.update({weekday: oneday.copy()})
+        if weekday_cal==11:
+            flag=True
         if weekday <= 7:
             weekday += 1
             weekday_cal = 0
         oneday.clear()
-        return (weekday_cal, weekday)
 
-    return (weekday_cal, weekday)
+        return (weekday_cal, weekday,flag)
+
+    return (weekday_cal, weekday,flag)
 
 
 def parseScheme(rs):
@@ -77,7 +81,12 @@ def parseScheme(rs):
         currentWeek = {}
         weekday = 1
         weekdayCal = 0
+        flag = bool
         for tdItem in lr:
+            if flag == True:
+                flag=False
+                continue
+
             if tdItem["class"] == ['td1']:
                 week_num = int(next(tdItem.stripped_strings)[0:-1])
                 wholeClasses.update({week_num: []})
@@ -98,7 +107,9 @@ def parseScheme(rs):
                     if class_content == "教研 ":
                         class_content = ''
                     weekdayCal += weekday_temp
-                    (weekdayCal, weekday) = judge(weekdayCal, oneday, weekday_temp, class_content, weekday, currentWeek)
+
+                    (weekdayCal, weekday,flag) = judge(weekdayCal, oneday, weekday_temp, class_content, weekday, currentWeek)
+
 
         wholeClasses[week_num] = currentWeek
     toJson = json.dumps(wholeClasses, ensure_ascii=False)
@@ -142,7 +153,7 @@ def dic2icslist(wholeClasses: dict, classesInfo: dict):
         temp = wholeClasses[i]
         for weekdaynum, classItem in temp.items():
             for classNum, classNameLs in classItem.items():
-                if classNameLs != '' and classNameLs != '不排课 ':
+                if classNameLs != '' and classNameLs != '不排课 ' and classNameLs !="研究生考试 ":
                     increment = datetime.timedelta(days=((i - 1) * 7 + int(weekdaynum) - 2))
                     classHappen = datetime.datetime.combine(start + increment, cl[classNum],
                                                             tzinfo=pytz.timezone("Asia/Shanghai"))
